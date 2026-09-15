@@ -27,6 +27,19 @@ export interface UserForFeedback {
   role: string;
 }
 
+export interface UpdateProfilePayload {
+  userType: 'alumni' | 'student';
+  name: string;
+  enrollmentNo: string;
+  batch: string;
+  company?: string;
+  role?: string;
+  experience?: string;
+  skills?: string[];
+  goals?: string;
+  techStack?: string[];
+}
+
 class APIService {
   private token: string | null = null;
 
@@ -124,6 +137,16 @@ class APIService {
       headers: this.getHeaders(),
     });
     return this.handleResponse<UserForFeedback[]>(response);
+  }
+
+  // Profile endpoints
+  async updateProfile(payload: UpdateProfilePayload): Promise<{ message: string; user: unknown }> {
+    const response = await fetch(`${API_BASE_URL}/users/profile`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return this.handleResponse(response);
   }
 
   // Add more API methods here as needed
