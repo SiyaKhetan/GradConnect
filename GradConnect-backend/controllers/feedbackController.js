@@ -60,7 +60,7 @@ const submitFeedback = async (req, res) => {
     });
   } catch (error) {
     console.error('Submit feedback error:', error);
-    res.status(500).json({ message: error.message || 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -88,7 +88,7 @@ const getGivenFeedback = async (req, res) => {
     res.json(formattedFeedback);
   } catch (error) {
     console.error('Get given feedback error:', error);
-    res.status(500).json({ message: error.message || 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -116,7 +116,7 @@ const getReceivedFeedback = async (req, res) => {
     res.json(formattedFeedback);
   } catch (error) {
     console.error('Get received feedback error:', error);
-    res.status(500).json({ message: error.message || 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -139,7 +139,7 @@ const getUsersForFeedback = async (req, res) => {
     res.json(formattedUsers);
   } catch (error) {
     console.error('Get users for feedback error:', error);
-    res.status(500).json({ message: error.message || 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
