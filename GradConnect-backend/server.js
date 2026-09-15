@@ -51,6 +51,14 @@ mongoose.connect(process.env.MONGO_URI)
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/feedback', require('./routes/feedbackRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/posts', require('./routes/postRoutes'));
+app.use('/api/messages', require('./routes/messageRoutes'));
+app.use('/api/meetings', require('./routes/meetingRoutes'));
+app.use('/api/events', require('./routes/eventRoutes'));
+app.use('/api/campaigns', require('./routes/campaignRoutes'));
+app.use('/api/interviews', require('./routes/interviewRoutes'));
+app.use('/api/leaderboard', require('./routes/leaderboardRoutes'));
+app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 
 // Basic welcome route
 app.get('/', (req, res) => {

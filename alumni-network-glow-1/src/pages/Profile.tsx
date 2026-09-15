@@ -1,20 +1,42 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { User, Building, Star } from "lucide-react";
+import { User, Building, Star, Loader } from "lucide-react";
+import { apiService, UserProfile } from "@/lib/api";
+import { useToast } from "@/components/ui/use-toast";
 
 const Profile = () => {
-  const profile = {
-    name: "John Doe",
-    type: "Alumni",
-    batch: "2018-2022",
-    role: "Software Engineer",
-    company: "Google",
-    skills: ["React", "Node.js", "System Design"],
-    rating: 4.8,
-    status: "Active",
-  };
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    apiService.getMe()
+      .then(setProfile)
+      .catch((error) => {
+        console.error('Error loading profile:', error);
+        toast({ title: "Error", description: "Failed to load your profile", variant: "destructive" });
+      })
+      .finally(() => setIsLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const initials = (name: string) => name.split(' ').filter(Boolean).map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+
+  if (isLoading || !profile) {
+    return (
+      <div className="min-h-screen bg-background flex">
+        <DashboardSidebar />
+        <div className="flex-1 flex items-center justify-center"><Loader className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+      </div>
+    );
+  }
+
+  const skills = [...(profile.profile.skills || []), ...(profile.profile.techStack || [])];
 
   return (
     <div className="min-h-screen bg-background">
@@ -39,33 +61,42 @@ const Profile = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-xl font-semibold">{profile.name}</h3>
-                    <p className="text-muted-foreground text-sm">{profile.type} • {profile.batch}</p>
+                    <p className="text-muted-foreground text-sm capitalize">{profile.userType} {profile.profile.batch ? `• ${profile.profile.batch}` : ''}</p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-12 h-12 bg-gradient-primary rounded-full flex items-center justify-center text-primary-foreground font-semibold">
-                      JD
-                    </div>
+                  <div className="w-12 h-12 bg-gradient-primary rounded-full flex items-center justify-center text-primary-foreground font-semibold">
+                    {initials(profile.name)}
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                  <Building className="w-4 h-4" />
-                  <span>{profile.role} at {profile.company}</span>
-                </div>
+                {(profile.profile.role || profile.profile.company) && (
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <Building className="w-4 h-4" />
+                    <span>{profile.profile.role || 'N/A'} at {profile.profile.company || 'N/A'}</span>
+                  </div>
+                )}
 
-                <div className="flex items-center space-x-1">
-                  <Star className="w-4 h-4 text-warning fill-current" />
-                  <span className="text-sm font-medium">{profile.rating}</span>
-                </div>
+                {profile.rating !== null && (
+                  <div className="flex items-center space-x-1">
+                    <Star className="w-4 h-4 text-warning fill-current" />
+                    <span className="text-sm font-medium">{profile.rating}</span>
+                    <span className="text-sm text-muted-foreground">({profile.reviewCount} reviews)</span>
+                  </div>
+                )}
 
-                <div className="flex flex-wrap gap-2">
-                  {profile.skills.map((skill) => (
-                    <Badge key={skill} variant="secondary">{skill}</Badge>
-                  ))}
-                </div>
+                {skills.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {skills.map((skill) => <Badge key={skill} variant="secondary">{skill}</Badge>)}
+                  </div>
+                )}
+
+                {profile.profile.goals && (
+                  <div className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">Goals: </span>{profile.profile.goals}
+                  </div>
+                )}
 
                 <div className="pt-2">
-                  <Button variant="outline">Edit Profile</Button>
+                  <Button variant="outline" onClick={() => navigate('/profile-setup')}>Edit Profile</Button>
                 </div>
               </CardContent>
             </Card>
@@ -77,5 +108,3 @@ const Profile = () => {
 };
 
 export default Profile;
-
-

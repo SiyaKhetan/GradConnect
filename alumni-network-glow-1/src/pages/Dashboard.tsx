@@ -1,52 +1,81 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import DashboardSidebar from "@/components/DashboardSidebar";
-import { 
-  Users, 
-  MessageCircle, 
-  Calendar, 
-  Star, 
+import {
+  Users,
+  MessageCircle,
+  Calendar,
+  Star,
   TrendingUp,
   Clock,
-  CheckCircle,
   ArrowRight,
-  User
+  User,
+  Loader
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { apiService, DashboardStats, UserProfile } from "@/lib/api";
+import { useToast } from "@/components/ui/use-toast";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [me, setMe] = useState<UserProfile | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const stats = [
+  useEffect(() => {
+    (async () => {
+      try {
+        const [meData, statsData] = await Promise.all([
+          apiService.getMe(),
+          apiService.getDashboardStats(),
+        ]);
+        setMe(meData);
+        setStats(statsData);
+      } catch (error) {
+        console.error('Error loading dashboard:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, [toast]);
+
+  const statCards = stats ? [
     {
       title: "Connections Made",
-      value: "12",
+      value: String(stats.connectionsMade),
       icon: Users,
-      change: "+3 this week",
+      change: `${stats.connectionsMade} total`,
       color: "text-primary"
     },
     {
       title: "Messages",
-      value: "8",
+      value: String(stats.unreadMessages),
       icon: MessageCircle,
-      change: "4 unread",
+      change: `${stats.unreadMessages} unread`,
       color: "text-secondary"
     },
     {
       title: "Meetings Scheduled",
-      value: "3",
+      value: String(stats.meetingsScheduled),
       icon: Calendar,
-      change: "Next: Tomorrow 2 PM",
+      change: stats.nextMeeting ? `Next: ${stats.nextMeeting.date} ${stats.nextMeeting.time}` : "None scheduled",
       color: "text-success"
     },
     {
       title: "Feedback Score",
-      value: "4.8",
+      value: stats.feedbackCount ? stats.feedbackScore.toFixed(1) : "—",
       icon: Star,
-      change: "Based on 15 reviews",
+      change: `Based on ${stats.feedbackCount} reviews`,
       color: "text-warning"
     }
-  ];
+  ] : [];
 
   const quickActions = [
     {
@@ -72,49 +101,44 @@ const Dashboard = () => {
     }
   ];
 
-  const recentActivity = [
-    {
-      type: "message",
-      title: "New message from Sarah Chen",
-      description: "Thanks for the career advice! Would love to...",
-      time: "2 hours ago",
-      icon: MessageCircle
-    },
-    {
-      type: "meeting",
-      title: "Meeting scheduled with Alex Kumar",
-      description: "Tomorrow at 2:00 PM - Product Management discussion",
-      time: "1 day ago",
-      icon: Calendar
-    },
-    {
-      type: "feedback",
-      title: "New feedback received",
-      description: "5-star rating from Maria Rodriguez",
-      time: "2 days ago",
-      icon: Star
-    },
-    {
-      type: "connection",
-      title: "New connection request",
-      description: "David Park wants to connect with you",
-      time: "3 days ago",
-      icon: Users
-    }
-  ];
+  const activityIcon = (type: string) => {
+    if (type === 'message') return MessageCircle;
+    if (type === 'meeting') return Calendar;
+    return Star;
+  };
+
+  const timeAgo = (iso: string) => {
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex">
+        <DashboardSidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <div className="flex">
         <DashboardSidebar />
-        
+
         {/* Main Content */}
         <div className="flex-1 md:ml-0 ml-0">
           <div className="p-6 md:p-8">
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-foreground mb-2">
-                Welcome back, John! 👋
+                Welcome back, {me?.firstName || 'there'}! 👋
               </h1>
               <p className="text-muted-foreground">
                 Here's what's happening with your alumni network today.
@@ -123,7 +147,7 @@ const Dashboard = () => {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {stats.map((stat, index) => (
+              {statCards.map((stat, index) => (
                 <Card key={index} className="card-elevated">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
@@ -197,24 +221,31 @@ const Dashboard = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {recentActivity.map((activity, index) => (
-                    <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-accent/30 transition-colors">
-                      <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <activity.icon className="w-4 h-4 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground">
-                          {activity.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1 truncate">
-                          {activity.description}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {activity.time}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                  {!stats || stats.recentActivity.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">No recent activity yet</p>
+                  ) : (
+                    stats.recentActivity.map((activity, index) => {
+                      const Icon = activityIcon(activity.type);
+                      return (
+                        <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-accent/30 transition-colors">
+                          <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Icon className="w-4 h-4 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground">
+                              {activity.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1 truncate">
+                              {activity.description}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {timeAgo(activity.time)}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -229,27 +260,28 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-4 bg-primary/5 rounded-lg border border-primary/20">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                        <User className="w-5 h-5 text-primary" />
+                  {stats && stats.upcomingMeetings.length > 0 ? (
+                    stats.upcomingMeetings.map((meeting) => (
+                      <div key={meeting.id} className="flex items-center justify-between p-4 bg-primary/5 rounded-lg border border-primary/20">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                            <User className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-foreground">{meeting.with} - {meeting.topic}</h4>
+                            <p className="text-sm text-muted-foreground">{meeting.date}, {meeting.time} · {meeting.status}</p>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-medium text-foreground">Alex Kumar - Product Management Chat</h4>
-                        <p className="text-sm text-muted-foreground">Tomorrow, 2:00 PM - 3:00 PM</p>
-                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-muted-foreground text-sm">No more meetings scheduled</p>
+                      <Button variant="link" onClick={() => navigate('/dashboard/meetings')}>
+                        Schedule a new meeting
+                      </Button>
                     </div>
-                    <Button size="sm" variant="outline">
-                      Join Meeting
-                    </Button>
-                  </div>
-                  
-                  <div className="text-center py-4">
-                    <p className="text-muted-foreground text-sm">No more meetings scheduled</p>
-                    <Button variant="link" onClick={() => navigate('/dashboard/meetings')}>
-                      Schedule a new meeting
-                    </Button>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
