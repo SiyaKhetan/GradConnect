@@ -76,9 +76,27 @@ const respondToMeeting = async (req, res) => {
     }
 
     const userId = req.user.id;
-    const isParticipant = meeting.requester.toString() === userId || meeting.recipient.toString() === userId;
-    if (!isParticipant) {
+    const isRequester = meeting.requester.toString() === userId;
+    const isRecipient = meeting.recipient.toString() === userId;
+    if (!isRequester && !isRecipient) {
       return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    if (status === 'accepted' || status === 'declined') {
+      if (!isRecipient) {
+        return res.status(403).json({ message: 'Only the recipient can accept or decline a meeting request' });
+      }
+      if (meeting.status !== 'pending') {
+        return res.status(400).json({ message: 'This meeting has already been responded to' });
+      }
+    }
+
+    if (status === 'completed' && meeting.status !== 'accepted') {
+      return res.status(400).json({ message: 'Only an accepted meeting can be marked completed' });
+    }
+
+    if (status === 'cancelled' && !['pending', 'accepted'].includes(meeting.status)) {
+      return res.status(400).json({ message: 'This meeting cannot be cancelled' });
     }
 
     meeting.status = status;

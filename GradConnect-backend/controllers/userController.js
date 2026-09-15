@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Feedback = require('../models/Feedback');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 const updateProfile = async (req, res) => {
   try {
@@ -89,13 +90,13 @@ const listUsers = async (req, res) => {
       query.role = userType;
     }
     if (company) {
-      query['profile_data.company'] = { $regex: String(company), $options: 'i' };
+      query['profile_data.company'] = { $regex: escapeRegex(company), $options: 'i' };
     }
     if (batch) {
       query['profile_data.batch'] = String(batch);
     }
     if (search) {
-      const re = { $regex: String(search), $options: 'i' };
+      const re = { $regex: escapeRegex(search), $options: 'i' };
       query.$or = [
         { name: re },
         { firstName: re },
