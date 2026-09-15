@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import {
   MessageCircle,
   Send,
   Search,
-  Loader
+  Loader,
+  SquarePen
 } from "lucide-react";
 import { apiService, Conversation, ChatMessage, UserProfile } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
@@ -25,6 +27,11 @@ const Chat = () => {
   const [isLoadingConvos, setIsLoadingConvos] = useState(true);
   const [isLoadingThread, setIsLoadingThread] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [convoSearch, setConvoSearch] = useState('');
+  const [isNewMessageOpen, setIsNewMessageOpen] = useState(false);
+  const [directory, setDirectory] = useState<UserProfile[]>([]);
+  const [directorySearch, setDirectorySearch] = useState('');
+  const [isLoadingDirectory, setIsLoadingDirectory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const fetchConversations = async () => {
@@ -85,6 +92,35 @@ const Chat = () => {
 
   const initials = (name: string) => name.split(' ').filter(Boolean).map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 
+  const openNewMessage = async () => {
+    setIsNewMessageOpen(true);
+    setIsLoadingDirectory(true);
+    try {
+      const users = await apiService.listUsers();
+      setDirectory(users);
+    } catch (error) {
+      console.error('Error loading directory:', error);
+      toast({ title: "Error", description: "Failed to load people", variant: "destructive" });
+    } finally {
+      setIsLoadingDirectory(false);
+    }
+  };
+
+  const startConversationWith = (user: UserProfile) => {
+    setSelectedUserId(user.id);
+    setSelectedName(user.name);
+    setIsNewMessageOpen(false);
+    setDirectorySearch('');
+  };
+
+  const filteredConversations = conversations.filter((c) =>
+    !convoSearch || c.name.toLowerCase().includes(convoSearch.toLowerCase())
+  );
+
+  const filteredDirectory = directory.filter((u) =>
+    !directorySearch || u.name.toLowerCase().includes(directorySearch.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <div className="flex">
@@ -97,10 +133,63 @@ const Chat = () => {
             <div className="p-4 border-b border-border">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-foreground">Messages</h2>
+                <Dialog open={isNewMessageOpen} onOpenChange={(open) => { setIsNewMessageOpen(open); if (open) openNewMessage(); }}>
+                  <DialogTrigger asChild>
+                    <Button size="icon" variant="ghost" title="New message">
+                      <SquarePen className="w-5 h-5" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader><DialogTitle>New Message</DialogTitle></DialogHeader>
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search people..."
+                          className="pl-10"
+                          value={directorySearch}
+                          onChange={(e) => setDirectorySearch(e.target.value)}
+                        />
+                      </div>
+                      <div className="max-h-80 overflow-y-auto space-y-1">
+                        {isLoadingDirectory ? (
+                          <div className="flex items-center justify-center p-8">
+                            <Loader className="w-5 h-5 animate-spin text-muted-foreground" />
+                          </div>
+                        ) : filteredDirectory.length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center p-4">No one found</p>
+                        ) : (
+                          filteredDirectory.map((user) => (
+                            <div
+                              key={user.id}
+                              className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-accent/50"
+                              onClick={() => startConversationWith(user)}
+                            >
+                              <Avatar className="w-9 h-9">
+                                <AvatarFallback className="bg-gradient-primary text-primary-foreground text-sm">
+                                  {initials(user.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="text-sm font-medium">{user.name}</p>
+                                <p className="text-xs text-muted-foreground capitalize">{user.userType}</p>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search conversations..." className="pl-10" disabled />
+                <Input
+                  placeholder="Search conversations..."
+                  className="pl-10"
+                  value={convoSearch}
+                  onChange={(e) => setConvoSearch(e.target.value)}
+                />
               </div>
             </div>
 
@@ -110,11 +199,17 @@ const Chat = () => {
                   <Loader className="w-5 h-5 animate-spin text-muted-foreground" />
                 </div>
               ) : conversations.length === 0 && !selectedUserId ? (
-                <p className="text-sm text-muted-foreground text-center p-8">
-                  No conversations yet. Start one from Search or a profile page.
-                </p>
+                <div className="text-center p-8">
+                  <p className="text-sm text-muted-foreground mb-3">No conversations yet.</p>
+                  <Button size="sm" onClick={openNewMessage}>
+                    <SquarePen className="w-4 h-4 mr-2" />
+                    Start a conversation
+                  </Button>
+                </div>
+              ) : filteredConversations.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center p-8">No conversations match "{convoSearch}"</p>
               ) : (
-                conversations.map((conversation) => (
+                filteredConversations.map((conversation) => (
                   <div
                     key={conversation.userId}
                     className={`p-4 border-b border-border cursor-pointer hover:bg-accent/50 transition-colors ${

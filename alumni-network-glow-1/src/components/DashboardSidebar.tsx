@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { 
-  User, 
-  Search, 
-  MessageCircle, 
-  Calendar, 
-  Star, 
-  LogOut, 
+import {
+  User,
+  Search,
+  MessageCircle,
+  Calendar,
+  Star,
+  LogOut,
   GraduationCap,
   Menu,
   X,
@@ -18,10 +18,16 @@ import {
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { apiService, UserProfile } from "@/lib/api";
 
 const DashboardSidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [me, setMe] = useState<UserProfile | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    apiService.getMe().then(setMe).catch(() => {});
+  }, []);
 
   const menuItems = [
     { icon: User, label: "Profile", path: "/dashboard/profile" },
@@ -37,7 +43,7 @@ const DashboardSidebar = () => {
   ];
 
   const handleLogout = () => {
-    // Mock logout - in real app would handle session cleanup
+    apiService.clearToken();
     navigate('/');
   };
 
@@ -99,8 +105,10 @@ const DashboardSidebar = () => {
                 <User className="w-4 h-4 text-primary-foreground" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">John Doe</p>
-                <p className="text-xs text-muted-foreground truncate">Alumni • 2020</p>
+                <p className="text-sm font-medium text-foreground truncate">{me?.name || 'Loading...'}</p>
+                <p className="text-xs text-muted-foreground truncate capitalize">
+                  {me ? `${me.userType}${me.profile.batch ? ` • ${me.profile.batch}` : ''}` : ''}
+                </p>
               </div>
             </div>
             
