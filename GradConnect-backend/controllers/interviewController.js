@@ -1,4 +1,5 @@
 const InterviewExperience = require('../models/InterviewExperience');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 const formatExperience = (e, userId) => ({
   id: e._id,
@@ -28,7 +29,7 @@ const listExperiences = async (req, res) => {
       query.company = company;
     }
     if (search) {
-      const re = { $regex: String(search), $options: 'i' };
+      const re = { $regex: escapeRegex(search), $options: 'i' };
       query.$or = [{ title: re }, { company: re }, { role: re }];
     }
 
