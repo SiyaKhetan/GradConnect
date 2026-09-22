@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: gradconnect-backend
+    runtime: node
+    plan: free
+    rootDir: GradConnect-backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+
+  - type: web
+    name: gradconnect-frontend
+    runtime: static
+    rootDir: alumni-network-glow-1
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
