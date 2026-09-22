@@ -28,7 +28,10 @@ const corsOptions = {
 };
 
 // Middleware
-app.use(helmet());
+// crossOriginResourcePolicy defaults to 'same-origin', which blocks the
+// frontend (a different origin) from reading this API's responses in the
+// browser even though CORS allows it. This is a public cross-origin API.
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors(corsOptions));
