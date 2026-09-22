@@ -50,7 +50,7 @@ mongoose.connect(process.env.MONGO_URI)
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/feedback', require('./routes/feedbackRoutes'));
-// app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
 
 // Basic welcome route
 app.get('/', (req, res) => {
