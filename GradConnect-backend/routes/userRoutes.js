@@ -1,9 +1,14 @@
 const express = require('express');
-const { updateProfile } = require('../controllers/userController');
+const { updateProfile, getMe, listUsers, getUserById } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-router.put('/profile', protect, updateProfile);
+router.use(protect);
+
+router.get('/me', getMe);
+router.get('/', listUsers);
+router.get('/:id', getUserById);
+router.put('/profile', updateProfile);
 
 module.exports = router;
